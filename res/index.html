@@ -4,10 +4,68 @@
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Shiny!</title>
+    <style>
+      body {
+        height: 90vh;
+        margin: 0;
+      }
+
+      h1 {
+        margin: 0;
+      }
+
+      textarea {
+        resize: none;
+      }
+
+      .container {
+        margin: 0;
+        height: 90%;
+        width: 100%;
+      }
+      
+      .column {
+        height: 100%;
+        width: 45%;
+        float: left;
+      }
+
+      #editor {
+        margin: 0;
+        border: 0;
+        padding: 0;
+        width: 95%;
+        height: 100%;
+      }
+
+      #output {
+        overflow: scroll;
+      }
+
+      /* Clear floats after the columns */
+      .container:after {
+        width: 100%;
+        content: "";
+        display: table;
+        clear: both;
+      }
+    </style>
   </head>
   <body>
-      <h1>Hello world!</h1>
-      <button onclick="external.invoke('click')">Click me</button>
+      <div class="container">
+          <h1>Shiny!</h1>
+          <div class="column">
+              <label for="editor">Markup Input</label><br/>
+              <textarea autofocus onkeyup="external.invoke(event.target.value)" id="editor" name="editor">
+**Mal:** Define "interesting"?
+
+**Wash:** [deadpan] "Oh, God, oh, God, we're all gonna die"?
+              </textarea>
+          </div>
+
+          <div class="column" id="output">
+          </div>
+      </div>
   </body>
 </html>
 

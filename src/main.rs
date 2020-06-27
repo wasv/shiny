@@ -45,7 +45,8 @@ fn assets(req: HttpRequest) -> HttpResponse {
     }
 }
 
-fn main() {
+#[actix_rt::main]
+async fn main() -> () {
     let (server_tx, server_rx) = mpsc::channel();
     let (port_tx, port_rx) = mpsc::channel();
 
@@ -55,7 +56,8 @@ fn main() {
 
         let server = HttpServer::new(|| App::new().route("*", web::get().to(assets)))
             .bind("127.0.0.1:0")
-            .unwrap();
+            .unwrap()
+            .shutdown_timeout(60);
 
         // we specified the port to be 0,
         // meaning the operating system
@@ -64,7 +66,7 @@ fn main() {
         // get the first bound address' port,
         // so we know where to point webview at
         let port = server.addrs().first().unwrap().port();
-        let server = server.start();
+        let server = server.run();
 
         let _ = port_tx.send(port);
         let _ = server_tx.send(server);
@@ -86,40 +88,56 @@ fn main() {
         .unwrap();
 
     // gracefully shutdown actix web server
-    let _ = server.stop(true);
+    let _ = server.stop(true).await;
 }
 
 fn invoke_handler(wv: &mut WebView<usize>, arg: &str) -> WVResult {
-    let mut filter = match Command::new("rev")
+    let mut filter = match Command::new("sh")
+        .arg("-c")
+        .arg("pandoc -f markdown --mathml -t html")
         .stdin(Stdio::piped())
+        .stderr(Stdio::null())
         .stdout(Stdio::piped())
         .spawn()
     {
         Ok(v) => v,
         Err(e) => {
-            let js = format!("console.error('{}')", e);
+            let js = format!("console.error('Error spawning process: {}')", e);
             let _ = wv.eval(&js);
             return Ok(());
         }
     };
 
-    let stdin = filter.stdin.as_mut().expect("Failed to open stdin");
-    stdin
-        .write_all(arg.as_bytes())
-        .expect("Failed to write to stdin");
+    let stdin = match filter.stdin.as_mut() {
+        Some(v) => v,
+        None => {
+            let js = format!("console.error('Could not open stdin.')");
+            let _ = wv.eval(&js);
+            return Ok(());
+        }
+    };
+
+    match stdin.write_all(arg.as_bytes()) {
+        Ok(v) => v,
+        Err(e) => {
+            let js = format!("console.error('Error writing input: {}')", e);
+            let _ = wv.eval(&js);
+            return Ok(());
+        }
+    }
 
     let output = match filter.wait_with_output() {
         Ok(v) => v,
         Err(e) => {
-            let js = format!("console.error('{}')", e);
+            let js = format!("console.error('Error reading output: {}')", e);
             let _ = wv.eval(&js);
             return Ok(());
         }
     };
 
     let js = format!(
-        "console.log('Output: {}')",
-        String::from_utf8_lossy(&output.stdout)
+        "document.getElementById('output').innerHTML = '{}'",
+        String::from_utf8_lossy(&output.stdout).trim_end().escape_default()
     );
     wv.eval(&js)?;
     Ok(())

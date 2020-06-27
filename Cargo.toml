@@ -8,10 +8,10 @@ edition = "2018"
 
 [dependencies]
 web-view = "0.6.3"
-actix-web = "1.0"
-actix-rt = "0.2"
+actix-web = "2.0"
+actix-rt = "1.0"
 rust-embed = "5.5.1"
-futures = "0.3.5"
+futures = "0.3.1"
 mime_guess = "2.0.3"
 
 [build-dependencies]
