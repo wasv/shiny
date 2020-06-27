@@ -50,22 +50,29 @@
         clear: both;
       }
     </style>
+    <script>
+        function update(prefix, value) {
+          external.invoke(prefix+':'+value)
+        }
+    </script>
   </head>
   <body>
       <div class="container">
           <h1>Shiny!</h1>
           <div class="column">
               <label for="editor">Markup Input</label><br/>
-              <textarea autofocus onkeyup="external.invoke(event.target.value)" id="editor" name="editor">
-**Mal:** Define "interesting"?
-
-**Wash:** [deadpan] "Oh, God, oh, God, we're all gonna die"?
+              <textarea autofocus onkeyup="update('content', event.target.value)" id="editor" name="editor">
+Everything's Shiny Cap'n!
               </textarea>
           </div>
 
           <div class="column" id="output">
           </div>
       </div>
+      <script>
+          let content = document.getElementById("editor").value;
+          update('content',content)
+      </script>
   </body>
 </html>
 

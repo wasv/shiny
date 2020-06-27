@@ -1,3 +1,4 @@
+#![warn(clippy::pedantic)]
 extern crate actix_rt;
 extern crate actix_web;
 extern crate futures;
@@ -8,19 +9,18 @@ extern crate web_view;
 use actix_web::{body::Body, web, App, HttpRequest, HttpResponse, HttpServer};
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
-use std::{
-    borrow::Cow,
-    io::Write,
-    process::{Command, Stdio},
-    sync::mpsc,
-    thread,
-};
-use web_view::*;
+use std::{borrow::Cow, sync::mpsc, thread};
+use web_view::{Content, WVResult, WebView};
+
+mod handlers;
+
+use handlers::RenderContext;
 
 #[derive(RustEmbed)]
 #[folder = "res/"]
 struct Asset;
 
+#[allow(clippy::needless_pass_by_value)]
 fn assets(req: HttpRequest) -> HttpResponse {
     let path = if req.path() == "/" {
         // if there is no path, return default file
@@ -82,63 +82,27 @@ async fn main() -> () {
         .size(720, 640)
         .resizable(true)
         .debug(true)
-        .user_data(0)
+        .user_data(RenderContext {
+            content: "Everythings Shiny Cap'n".to_string(),
+            filter: "cat".to_string(),
+        })
         .invoke_handler(invoke_handler)
         .run()
         .unwrap();
 
     // gracefully shutdown actix web server
-    let _ = server.stop(true).await;
+    server.stop(true).await;
 }
 
-fn invoke_handler(wv: &mut WebView<usize>, arg: &str) -> WVResult {
-    let mut filter = match Command::new("sh")
-        .arg("-c")
-        .arg("pandoc -f markdown --mathml -t html")
-        .stdin(Stdio::piped())
-        .stderr(Stdio::null())
-        .stdout(Stdio::piped())
-        .spawn()
-    {
-        Ok(v) => v,
-        Err(e) => {
-            let js = format!("console.error('Error spawning process: {}')", e);
-            let _ = wv.eval(&js);
-            return Ok(());
-        }
-    };
-
-    let stdin = match filter.stdin.as_mut() {
-        Some(v) => v,
-        None => {
-            let js = format!("console.error('Could not open stdin.')");
-            let _ = wv.eval(&js);
-            return Ok(());
-        }
-    };
-
-    match stdin.write_all(arg.as_bytes()) {
-        Ok(v) => v,
-        Err(e) => {
-            let js = format!("console.error('Error writing input: {}')", e);
-            let _ = wv.eval(&js);
-            return Ok(());
-        }
+fn invoke_handler(wv: &mut WebView<RenderContext>, arg: &str) -> WVResult {
+    if let Some(content) = arg.strip_prefix("content:") {
+        let context = wv.user_data_mut();
+        context.content = content.to_owned();
     }
-
-    let output = match filter.wait_with_output() {
-        Ok(v) => v,
-        Err(e) => {
-            let js = format!("console.error('Error reading output: {}')", e);
-            let _ = wv.eval(&js);
-            return Ok(());
-        }
-    };
-
-    let js = format!(
-        "document.getElementById('output').innerHTML = '{}'",
-        String::from_utf8_lossy(&output.stdout).trim_end().escape_default()
-    );
-    wv.eval(&js)?;
+    if let Some(filter) = arg.strip_prefix("filter:") {
+        let context = wv.user_data_mut();
+        context.filter = filter.to_owned();
+    }
+    handlers::render(wv);
     Ok(())
 }
