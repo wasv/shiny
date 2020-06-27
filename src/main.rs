@@ -8,7 +8,13 @@ extern crate web_view;
 use actix_web::{body::Body, web, App, HttpRequest, HttpResponse, HttpServer};
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
-use std::{borrow::Cow, sync::mpsc, thread};
+use std::{
+    borrow::Cow,
+    io::Write,
+    process::{Command, Stdio},
+    sync::mpsc,
+    thread,
+};
 use web_view::*;
 
 #[derive(RustEmbed)]
@@ -84,7 +90,37 @@ fn main() {
 }
 
 fn invoke_handler(wv: &mut WebView<usize>, arg: &str) -> WVResult {
-    let js = format!("console.log('External: {}')", arg);
+    let mut filter = match Command::new("rev")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+    {
+        Ok(v) => v,
+        Err(e) => {
+            let js = format!("console.error('{}')", e);
+            let _ = wv.eval(&js);
+            return Ok(());
+        }
+    };
+
+    let stdin = filter.stdin.as_mut().expect("Failed to open stdin");
+    stdin
+        .write_all(arg.as_bytes())
+        .expect("Failed to write to stdin");
+
+    let output = match filter.wait_with_output() {
+        Ok(v) => v,
+        Err(e) => {
+            let js = format!("console.error('{}')", e);
+            let _ = wv.eval(&js);
+            return Ok(());
+        }
+    };
+
+    let js = format!(
+        "console.log('Output: {}')",
+        String::from_utf8_lossy(&output.stdout)
+    );
     wv.eval(&js)?;
     Ok(())
 }
