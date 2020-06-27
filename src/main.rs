@@ -3,13 +3,14 @@ extern crate actix_rt;
 extern crate actix_web;
 extern crate futures;
 extern crate mime_guess;
+extern crate nfd2;
 extern crate rust_embed;
 extern crate web_view;
 
 use actix_web::{body::Body, web, App, HttpRequest, HttpResponse, HttpServer};
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
-use std::{borrow::Cow, sync::mpsc, thread};
+use std::{borrow::Cow, fs::File, io::prelude::*, sync::mpsc, thread};
 use web_view::Content;
 
 mod handlers;
@@ -100,6 +101,34 @@ async fn main() -> () {
                 let mut ctx = wv.user_data_mut();
                 ctx.filter = filter.to_owned();
                 ctx_tx.send(ctx.clone()).unwrap();
+            }
+            if let Some(dialog) = arg.strip_prefix("dialog:") {
+                match dialog {
+                    "load" => {
+                        let _ = nfd2::DialogBuilder::single()
+                            .filter("txt,md,rst,adoc;*")
+                            .open();
+                    }
+                    "save" => {
+                        match nfd2::DialogBuilder::new(nfd2::DialogType::SaveFile)
+                            .filter("txt,md,rst,adoc;*")
+                            .open()
+                        {
+                            Ok(nfd2::Response::Okay(path)) => {
+                                let ctx = wv.user_data();
+                                if let Ok(mut file) = File::create(path) {
+                                    if let Err(e) = file.write_all(ctx.content.as_bytes()) {
+                                        eprintln!("Could not write to file! {}", e);
+                                    }
+                                } else {
+                                    eprintln!("Could not save file!");
+                                }
+                            }
+                            _ => {}
+                        }
+                    }
+                    _ => {}
+                }
             }
             Ok(())
         })

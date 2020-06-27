@@ -39,16 +39,6 @@ textarea {
   display: flex;
 }
 
-#filter-form {
-  display: flex;
-  width: 100%;
-  flex-direction: row;
-}
-
-#filter {
-  flex: auto;
-}
-
 #editor {
   width: 95%;
   flex: auto;
@@ -56,4 +46,20 @@ textarea {
 
 #output {
   overflow: scroll;
+}
+
+#settings-bar {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+}
+
+#settings-bar form {
+  display: flex;
+  flex: auto;
+  flex-direction: row;
+}
+
+#settings-bar input[type=text] {
+  flex: auto;
 }

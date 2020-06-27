@@ -1106,6 +1106,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nfd2"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0ac3db0bc756658680499145064b43b6bfc0e22ffeb2831927a4348c8b629f96"
+dependencies = [
+ "cc",
+]
+
+[[package]]
 name = "num-integer"
 version = "0.1.43"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1504,6 +1513,7 @@ dependencies = [
  "actix-web",
  "futures",
  "mime_guess",
+ "nfd2",
  "rust-embed",
  "wasm-bindgen-cli-support",
  "web-view",

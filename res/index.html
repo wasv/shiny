@@ -31,11 +31,19 @@ Everything's Shiny Cap'n!
               <iframe class="column" id="output">
               </iframe>
           </div>
-          <form id="filter-form" onsubmit="submitFilter(event)">
-              <label for="filter">Filter Command</label>
-              <input type="text" name="filter" id="filter"/>
-              <input type="submit"/>
-          </form>
+          <div id="settings-bar">
+              <form onsubmit="submitFilter(event)">
+                  <label for="filter">Filter Command</label>
+                  <input type="text" name="filter" id="filter"/>
+                  <input type="submit" value="Set Filter"/>
+              </form>
+              <button type="button" onclick="update('dialog','save')">
+                  Save
+              </button>
+              <button type="button" onclick="update('dialog','load')">
+                  Load
+              </button>
+          </div>
       </div>
 
       <script>
