@@ -17,9 +17,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install webkit2gtk
-      run: sudo apt-get install libwebkit2gtk-4.0-37
-    - name: Build
-      run: cargo build --verbose
+      run: sudo apt-get install libwebkit2gtk-4.0-dev
+    - name: rust-cargo
+      uses: actions-rs/cargo@v1.0.1
+      with:
+        # Cargo command to run (ex. `check` or `build`)
+        command: build
+        # Toolchain to use (without the `+` sign, ex. `nightly`)
+        toolchain: nightly
     - name: rust-clippy-check
       uses: actions-rs/clippy-check@v1.0.7
       with:
