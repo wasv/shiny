@@ -105,9 +105,27 @@ async fn main() -> () {
             if let Some(dialog) = arg.strip_prefix("dialog:") {
                 match dialog {
                     "load" => {
-                        let _ = nfd2::DialogBuilder::single()
+                        match nfd2::DialogBuilder::single()
                             .filter("txt,md,rst,adoc;*")
-                            .open();
+                            .open() {
+                            Ok(nfd2::Response::Okay(path)) => {
+                                if let Ok(mut file) = File::open(path) {
+                                    let mut buffer = String::new();
+                                    if let Ok(_) = file.read_to_string(&mut buffer) {
+                                        let ctx = wv.user_data_mut();
+                                        ctx.content = buffer;
+                                        ctx_tx.send(ctx.clone()).unwrap();
+                                        let js = format!("document.getElementById('editor').value = '{}'", ctx.content.escape_default().to_string());
+                                        wv.eval(&js)?;
+                                    } else {
+                                        eprintln!("Could not read from file!");
+                                    }
+                                } else {
+                                    eprintln!("Could not open file!");
+                                }
+                            }
+                            _ => {}
+                        }
                     }
                     "save" => {
                         match nfd2::DialogBuilder::new(nfd2::DialogType::SaveFile)
