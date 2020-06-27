@@ -30,14 +30,10 @@ pub fn render(ctx: &RenderContext) -> std::result::Result<String, String> {
     };
 
     match filter.wait_with_output() {
-        Ok(output) => {
-            return Ok(String::from_utf8_lossy(&output.stdout)
-                .trim_end()
-                .escape_default()
-                .to_string())
-        }
-        Err(e) => {
-            return Err(format!("Error reading output: {}", e));
-        }
-    };
+        Ok(output) => Ok(String::from_utf8_lossy(&output.stdout)
+            .trim_end()
+            .escape_default()
+            .to_string()),
+        Err(e) => Err(format!("Error reading output: {}", e)),
+    }
 }

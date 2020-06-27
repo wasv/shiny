@@ -105,44 +105,43 @@ async fn main() -> () {
             if let Some(dialog) = arg.strip_prefix("dialog:") {
                 match dialog {
                     "load" => {
-                        match nfd2::DialogBuilder::single()
-                            .filter("txt,md,rst,adoc;*")
-                            .open() {
-                            Ok(nfd2::Response::Okay(path)) => {
-                                if let Ok(mut file) = File::open(path) {
-                                    let mut buffer = String::new();
-                                    if let Ok(_) = file.read_to_string(&mut buffer) {
-                                        let ctx = wv.user_data_mut();
-                                        ctx.content = buffer;
-                                        ctx_tx.send(ctx.clone()).unwrap();
-                                        let js = format!("document.getElementById('editor').value = '{}'", ctx.content.escape_default().to_string());
-                                        wv.eval(&js)?;
-                                    } else {
-                                        eprintln!("Could not read from file!");
-                                    }
-                                } else {
-                                    eprintln!("Could not open file!");
-                                }
-                            }
-                            _ => {}
-                        }
-                    }
-                    "save" => {
-                        match nfd2::DialogBuilder::new(nfd2::DialogType::SaveFile)
+                        if let Ok(nfd2::Response::Okay(path)) = nfd2::DialogBuilder::single()
                             .filter("txt,md,rst,adoc;*")
                             .open()
                         {
-                            Ok(nfd2::Response::Okay(path)) => {
-                                let ctx = wv.user_data();
-                                if let Ok(mut file) = File::create(path) {
-                                    if let Err(e) = file.write_all(ctx.content.as_bytes()) {
-                                        eprintln!("Could not write to file! {}", e);
-                                    }
+                            if let Ok(mut file) = File::open(path) {
+                                let mut buffer = String::new();
+                                if file.read_to_string(&mut buffer).is_ok() {
+                                    let ctx = wv.user_data_mut();
+                                    ctx.content = buffer;
+                                    ctx_tx.send(ctx.clone()).unwrap();
+                                    let js = format!(
+                                        "document.getElementById('editor').value = '{}'",
+                                        ctx.content.escape_default().to_string()
+                                    );
+                                    wv.eval(&js)?;
                                 } else {
-                                    eprintln!("Could not save file!");
+                                    eprintln!("Could not read from file!");
                                 }
+                            } else {
+                                eprintln!("Could not open file!");
                             }
-                            _ => {}
+                        }
+                    }
+                    "save" => {
+                        if let Ok(nfd2::Response::Okay(path)) =
+                            nfd2::DialogBuilder::new(nfd2::DialogType::SaveFile)
+                                .filter("txt,md,rst,adoc;*")
+                                .open()
+                        {
+                            let ctx = wv.user_data();
+                            if let Ok(mut file) = File::create(path) {
+                                if let Err(e) = file.write_all(ctx.content.as_bytes()) {
+                                    eprintln!("Could not write to file! {}", e);
+                                }
+                            } else {
+                                eprintln!("Could not save file!");
+                            }
                         }
                     }
                     _ => {}
@@ -156,8 +155,8 @@ async fn main() -> () {
     let hwv = wv.handle();
 
     // Spawna thread for rendering.
-    thread::spawn(move || loop {
-        if let Ok(ctx) = ctx_rx.recv() {
+    thread::spawn(move || {
+        while let Ok(ctx) = ctx_rx.recv() {
             match handlers::render(&ctx) {
                 Ok(output) => {
                     let js = format!("document.getElementById('output').srcdoc = '{}'", output);
@@ -169,8 +168,6 @@ async fn main() -> () {
                     eprintln!("{}", e);
                 }
             }
-        } else {
-            break;
         }
     });
 
