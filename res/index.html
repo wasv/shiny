@@ -4,71 +4,40 @@
     <meta http-equiv="Content-type" content="text/html; charset=utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Shiny!</title>
-    <style>
-      body {
-        height: 90vh;
-        margin: 0;
-      }
-
-      h1 {
-        margin: 0;
-      }
-
-      textarea {
-        resize: none;
-      }
-
-      .container {
-        margin: 0;
-        height: 90%;
-        width: 100%;
-      }
-      
-      .column {
-        height: 100%;
-        width: 45%;
-        float: left;
-      }
-
-      #editor {
-        margin: 0;
-        border: 0;
-        padding: 0;
-        width: 95%;
-        height: 100%;
-      }
-
-      #output {
-        overflow: scroll;
-      }
-
-      /* Clear floats after the columns */
-      .container:after {
-        width: 100%;
-        content: "";
-        display: table;
-        clear: both;
-      }
-    </style>
+    <link rel="stylesheet" type="text/css" href="index.css">
     <script>
         function update(prefix, value) {
           external.invoke(prefix+':'+value)
+        }
+
+        function submitFilter(event) {
+          let filter = document.getElementById("filter").value;
+          update("filter",filter)
+          event.preventDefault()
         }
     </script>
   </head>
   <body>
       <div class="container">
           <h1>Shiny!</h1>
-          <div class="column">
-              <label for="editor">Markup Input</label><br/>
-              <textarea autofocus onkeyup="update('content', event.target.value)" id="editor" name="editor">
+          <div class="column-container">
+              <div class="column">
+                  <label for="editor">Markup Input</label>
+                  <textarea autofocus onkeyup="update('content', event.target.value)" id="editor" name="editor">
 Everything's Shiny Cap'n!
-              </textarea>
-          </div>
+                  </textarea>
+              </div>
 
-          <div class="column" id="output">
+              <iframe class="column" id="output">
+              </iframe>
           </div>
+          <form id="filter-form" onsubmit="submitFilter(event)">
+              <label for="filter">Filter Command</label>
+              <input type="text" name="filter" id="filter"/>
+              <input type="submit"/>
+          </form>
       </div>
+
       <script>
           let content = document.getElementById("editor").value;
           update('content',content)

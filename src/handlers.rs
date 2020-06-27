@@ -11,7 +11,7 @@ pub fn render(wv: &mut WebView<RenderContext>) {
     let context = wv.user_data();
     let mut filter = match Command::new("sh")
         .arg("-c")
-        .arg("pandoc -f markdown --mathml -t html")
+        .arg(context.filter.clone())
         .stdin(Stdio::piped())
         .stderr(Stdio::null())
         .stdout(Stdio::piped())
@@ -40,7 +40,7 @@ pub fn render(wv: &mut WebView<RenderContext>) {
     match filter.wait_with_output() {
         Ok(output) => {
             let js = format!(
-                "document.getElementById('output').innerHTML = '{}'",
+                "document.getElementById('output').srcdoc = '{}'",
                 String::from_utf8_lossy(&output.stdout)
                     .trim_end()
                     .escape_default()

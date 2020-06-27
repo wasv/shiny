@@ -1,0 +1,59 @@
+body {
+  height: 100vh;
+  margin: 0;
+}
+
+iframe {
+  margin: 0;
+  border: 0;
+}
+
+h1 {
+  margin: 0.25em 0;
+}
+
+textarea {
+  resize: none;
+}
+
+.container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.column-container {
+  flex: auto;
+  margin: 0;
+  width: 100%;
+  flex-direction: row;
+  display: flex;
+  align-items: stretch;
+}
+
+.column-container > .column {
+  flex: 1;
+  flex-direction: column;
+  display: flex;
+}
+
+#filter-form {
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+}
+
+#filter {
+  flex: auto;
+}
+
+#editor {
+  width: 95%;
+  flex: auto;
+}
+
+#output {
+  overflow: scroll;
+}
