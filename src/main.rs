@@ -10,7 +10,7 @@ use actix_web::{body::Body, web, App, HttpRequest, HttpResponse, HttpServer};
 use mime_guess::from_path;
 use rust_embed::RustEmbed;
 use std::{borrow::Cow, sync::mpsc, thread};
-use web_view::{Content, WVResult, WebView};
+use web_view::Content;
 
 mod handlers;
 
@@ -47,6 +47,10 @@ fn assets(req: HttpRequest) -> HttpResponse {
 
 #[actix_rt::main]
 async fn main() -> () {
+    // Channel for passing render contexts to renderer.
+    let (ctx_tx, ctx_rx) = mpsc::channel();
+
+    // Channels for passing server information to web view.
     let (server_tx, server_rx) = mpsc::channel();
     let (port_tx, port_rx) = mpsc::channel();
 
@@ -76,7 +80,7 @@ async fn main() -> () {
     let port = port_rx.recv().unwrap();
     let server = server_rx.recv().unwrap();
 
-    web_view::builder()
+    let wv = web_view::builder()
         .title("Shiny!")
         .content(Content::Url(format!("http://127.0.0.1:{}", port)))
         .size(720, 640)
@@ -86,23 +90,44 @@ async fn main() -> () {
             content: "Everythings Shiny Cap'n".to_string(),
             filter: "cat".to_string(),
         })
-        .invoke_handler(invoke_handler)
-        .run()
+        .invoke_handler(|wv, arg| {
+            if let Some(content) = arg.strip_prefix("content:") {
+                let mut ctx = wv.user_data_mut();
+                ctx.content = content.to_owned();
+                ctx_tx.send(ctx.clone()).unwrap();
+            }
+            if let Some(filter) = arg.strip_prefix("filter:") {
+                let mut ctx = wv.user_data_mut();
+                ctx.filter = filter.to_owned();
+                ctx_tx.send(ctx.clone()).unwrap();
+            }
+            Ok(())
+        })
+        .build()
         .unwrap();
 
+    let hwv = wv.handle();
+
+    // Spawna thread for rendering.
+    thread::spawn(move || loop {
+        if let Ok(ctx) = ctx_rx.recv() {
+            match handlers::render(&ctx) {
+                Ok(output) => {
+                    let js = format!("document.getElementById('output').srcdoc = '{}'", output);
+                    hwv.dispatch(move |wv| wv.eval(&js)).unwrap();
+                }
+                Err(e) => {
+                    let js = format!("cosole.error('{}')", e);
+                    hwv.dispatch(move |wv| wv.eval(&js)).unwrap();
+                    eprintln!("{}", e);
+                }
+            }
+        } else {
+            break;
+        }
+    });
+
+    wv.run().unwrap();
     // gracefully shutdown actix web server
     server.stop(true).await;
-}
-
-fn invoke_handler(wv: &mut WebView<RenderContext>, arg: &str) -> WVResult {
-    if let Some(content) = arg.strip_prefix("content:") {
-        let context = wv.user_data_mut();
-        context.content = content.to_owned();
-    }
-    if let Some(filter) = arg.strip_prefix("filter:") {
-        let context = wv.user_data_mut();
-        context.filter = filter.to_owned();
-    }
-    handlers::render(wv);
-    Ok(())
 }
