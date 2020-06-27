@@ -1,8 +1,0 @@
-[package]
-name = "shiny-ui"
-version = "0.1.0"
-authors = ["Billy Stevens <contact@wasv.me>"]
-edition = "2018"
-
-[dependencies]
-iced = { version = "0.1.1", features = ["async-std"] }

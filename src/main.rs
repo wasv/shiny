@@ -12,7 +12,7 @@ use std::{borrow::Cow, sync::mpsc, thread};
 use web_view::*;
 
 #[derive(RustEmbed)]
-#[folder = "target-wasm32/shiny/"]
+#[folder = "res/"]
 struct Asset;
 
 fn assets(req: HttpRequest) -> HttpResponse {
@@ -71,14 +71,20 @@ fn main() {
     web_view::builder()
         .title("Shiny!")
         .content(Content::Url(format!("http://127.0.0.1:{}", port)))
-        .size(320, 480)
-        .resizable(false)
+        .size(720, 640)
+        .resizable(true)
         .debug(true)
-        .user_data(())
-        .invoke_handler(|_webview, _arg| Ok(()))
+        .user_data(0)
+        .invoke_handler(invoke_handler)
         .run()
         .unwrap();
 
     // gracefully shutdown actix web server
     let _ = server.stop(true);
+}
+
+fn invoke_handler(wv: &mut WebView<usize>, arg: &str) -> WVResult {
+    let js = format!("console.log('External: {}')", arg);
+    wv.eval(&js)?;
+    Ok(())
 }
