@@ -18,23 +18,23 @@ image: "rustlang/rust:nightly"
 #   - apt-get install -yqq --no-install-recommends build-essential
 
 # Use cargo to test the project
+
+
+before_script:
+- apt-get update && apt-get install -y libwebkit2gtk-4.0-dev
+
 setup:
   stage: .pre
-  before_script:
-  - apt-get update && apt-get install -y libwebkit2gtk-4.0-dev
   script:
   - rustc --version && cargo --version  # Print version info for debugging
   
 cargo build:
   stage: build
-  before_script:
-  - apt-get update && apt-get install -y libwebkit2gtk-4.0-dev
   script:
   - cargo build --workspace --verbose
   
 cargo clippy:
   stage: test
-  before_script:
-  - apt-get update && apt-get install -y libwebkit2gtk-4.0-dev
+  needs: ['cargo build']
   script:
   - cargo clippy --workspace --verbose
